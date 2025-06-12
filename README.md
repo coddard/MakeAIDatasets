@@ -1,9 +1,11 @@
 # MakeAIDatasets
 
 ## Project Overview
-MakeAIDatasets is an automated pipeline for creating high-quality text datasets from PDF and EPUB sources. The system automates text extraction, language filtering, and dataset preparation, and generates comprehensive metadata for quality control.
+
+MakeAIDatasets is an automated pipeline for creating high-quality AI datasets from PDF and EPUB sources. The system automates text extraction, language filtering, and dataset preparation, and generates comprehensive metadata for quality control.
 
 ## Key Features
+
 - **Multi-format support**: Process PDF (text & scanned) and EPUB files
 - **Intelligent text extraction**: Native text extraction with OCR fallback
 - **Language filtering**: FastText-powered English detection with confidence thresholds
@@ -13,21 +15,26 @@ MakeAIDatasets is an automated pipeline for creating high-quality text datasets 
 - **Cloud integration**: Direct upload to Hugging Face Hub
 
 ## Technical Process
+
 1. **Input Handling**
+
    - Accepts PDF and EPUB files in `/input` directory
    - Processes files in parallel using thread pooling
 
 2. **Content Extraction**
+
    - **PDF**: Native text extraction with PyPDF2 + OCR fallback using Tesseract
    - **EPUB**: Structural parsing with ebooklib and BeautifulSoup
 
 3. **Text Processing**
+
    - Whitespace normalization
    - Short line filtering
    - Language detection (English with >70% confidence)
    - Paragraph reconstruction
 
 4. **Metadata Generation**
+
    - File characteristics (format, size)
    - Processing details (OCR usage, page count)
    - Content metrics (paragraph count, English ratio)
@@ -39,6 +46,7 @@ MakeAIDatasets is an automated pipeline for creating high-quality text datasets 
    - Hugging Face dataset in `/hf_dataset`
 
 ## Repository Structure
+
 ```
 MakeAIDatasets/
 ├── input/                  # Source files directory
@@ -61,7 +69,9 @@ MakeAIDatasets/
 ```
 
 ## Requirements
+
 ### Python Dependencies (requirements.txt)
+
 ```text
 PyPDF2==3.0.0
 ebooklib==1.0.0
@@ -77,6 +87,7 @@ tqdm==4.66.1
 ```
 
 ### System Dependencies
+
 ```bash
 # Ubuntu/Debian
 sudo apt install -y \
@@ -90,7 +101,9 @@ sudo apt install -y \
 ```
 
 ## Docker Setup
+
 ### Dockerfile
+
 ```dockerfile
 FROM python:3.10-slim
 
@@ -123,7 +136,9 @@ CMD ["python", "src/main.py"]
 ```
 
 ## Usage
+
 ### Basic Processing
+
 1. Place source files in `/input` directory
 2. Run main processing:
    ```bash
@@ -132,6 +147,7 @@ CMD ["python", "src/main.py"]
 3. Follow interactive prompts for dataset creation
 
 ### Advanced Options
+
 ```bash
 # Process files without interaction
 python src/main.py --auto
@@ -144,6 +160,7 @@ python src/main.py --log-level DEBUG
 ```
 
 ### Docker Execution
+
 ```bash
 # Build Docker image
 docker build -t book-processor .
@@ -153,7 +170,7 @@ docker run -it --rm \
   -v $(pwd)/input:/app/input \
   -v $(pwd)/output:/app/output \
   book-processor
-  
+
 # With environment variables
 docker run -it --rm \
   -e POPPLER_PATH=/custom/path \
@@ -215,18 +232,20 @@ docker run -it --rm \
 - Update README and examples regularly.
 
 ## Configuration
+
 Customize processing through environment variables (use `.env` file or export):
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `POPPLER_PATH` | System PATH | Custom Poppler binaries location |
-| `TESSERACT_THREADS` | 4 | OCR processing threads |
-| `MIN_ENGLISH_CONFIDENCE` | 0.7 | Language detection threshold |
-| `HF_TOKEN` | - | Hugging Face API token |
-| `LOGLEVEL` | INFO | Log verbosity |
-| `MAX_WORKERS` | CPU cores | Thread pool size |
+| Variable                 | Default     | Description                      |
+| ------------------------ | ----------- | -------------------------------- |
+| `POPPLER_PATH`           | System PATH | Custom Poppler binaries location |
+| `TESSERACT_THREADS`      | 4           | OCR processing threads           |
+| `MIN_ENGLISH_CONFIDENCE` | 0.7         | Language detection threshold     |
+| `HF_TOKEN`               | -           | Hugging Face API token           |
+| `LOGLEVEL`               | INFO        | Log verbosity                    |
+| `MAX_WORKERS`            | CPU cores   | Thread pool size                 |
 
 ## Output Structure
+
 ```
 output/
 ├── cleaned_texts/
@@ -243,6 +262,7 @@ output/
 ```
 
 Sample metadata:
+
 ```json
 {
   "source_file": "deep_learning.pdf",
@@ -258,7 +278,9 @@ Sample metadata:
 ```
 
 ## Planned Features
+
 ### Near-term Roadmap
+
 - [ ] EPUB chapter preservation
 - [ ] Automatic quality scoring
 - [ ] Kaggle API integration
@@ -266,6 +288,7 @@ Sample metadata:
 - [ ] PDF text/OCR hybrid mode
 
 ### Future Development
+
 - [ ] Distributed processing with Celery
 - [ ] AWS S3 integration
 - [ ] Content deduplication
@@ -274,7 +297,9 @@ Sample metadata:
 - [ ] REST API interface
 
 ## Contribution Guidelines
+
 We welcome contributions! Here's how to help:
+
 1. Report issues and suggest features
 2. Submit pull requests:
    - Fork repository
@@ -284,13 +309,15 @@ We welcome contributions! Here's how to help:
 4. Add test cases
 
 ### Testing Requirements
+
 - Unit tests for all processing modules
 - Integration tests with sample books
 - Performance benchmarks
 - Error handling simulations
 
 ## Support
+
 For assistance, please:
+
 - Check [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 - Open a GitHub issue
-
