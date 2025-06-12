@@ -1,0 +1,25 @@
+# MakeAIDatasets/requirements.txt
+
+# Core dependencies
+PyPDF2==3.0.0
+ebooklib==0.17.1
+beautifulsoup4==4.12.0
+pdf2image==1.16.0
+pytesseract==0.3.10
+fasttext==0.9.2
+
+# Data processing
+datasets==2.14.0
+numpy>=1.21.0
+
+# Cloud integration
+huggingface-hub==0.16.4
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+
+# Development (optional)
+pytest
+black>=22.0.0
