@@ -1,5 +1,7 @@
 # MakeAIDatasets
 
+![Ekran görüntüsü 2025-06-13 231035](https://github.com/user-attachments/assets/6b14ce55-34cf-4a50-8ed7-9f93ddcd9cec)
+
 ## Project Overview
 
 MakeAIDatasets is an automated pipeline for creating high-quality AI datasets from PDF and EPUB sources. The system automates text extraction, language filtering, and dataset preparation, and generates comprehensive metadata for quality control.
