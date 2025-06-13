@@ -11,6 +11,9 @@ from datasets import Dataset
 
 from src.processors.pdf_processor import process_pdf
 from src.processors.epub_processor import process_epub
+from src.processors.docx_processor import process_docx
+from src.processors.html_processor import process_html
+from src.processors.txt_processor import process_txt
 from src.processors.text_cleaner import TextCleaner
 from src.utils.filetype_detector import detect_file_type
 from src.utils.summary_report import generate_summary_report
@@ -84,6 +87,12 @@ def process_single_file(file: Path, text_cleaner: TextCleaner, output_format="tx
             raw_text, ocr_used, file_meta = process_pdf(file)
         elif source_format == "epub":
             raw_text = process_epub(file)
+        elif source_format == "txt":
+            raw_text = process_txt(file)
+        elif source_format == "docx":
+            raw_text = process_docx(file)
+        elif source_format == "html":
+            raw_text = process_html(file)
         else:
             logger.warning(f"Unsupported format: {file.name}")
             return False

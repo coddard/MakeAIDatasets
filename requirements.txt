@@ -9,6 +9,7 @@ pytesseract==0.3.10
 gensim
 pybind11
 lingua-language-detector==2.1.1
+python-docx
 
 # Data processing
 datasets==2.14.0

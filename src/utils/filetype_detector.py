@@ -9,4 +9,10 @@ def detect_file_type(file_path: Path) -> str:
         return "pdf"
     if ext == ".epub" or (mime and "epub" in mime):
         return "epub"
+    if ext == ".txt" or (mime and "text" in mime):
+        return "txt"
+    if ext == ".docx" or (mime and "word" in mime):
+        return "docx"
+    if ext == ".html" or ext == ".htm" or (mime and "html" in mime):
+        return "html"
     return "unknown"
