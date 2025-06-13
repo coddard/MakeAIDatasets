@@ -1,17 +1,21 @@
-# MakeAIDatasets/Dockerfile
-
+# Stage 1: Builder
 FROM python:3.10-slim as builder
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
 
-# Download language model
-RUN mkdir -p /app/models \
-    && wget -q https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz \
-    -O /app/models/lid.176.ftz
+# Copy only requirements file first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
+# Download language model in builder stage
+RUN mkdir -p /build/models && \
+    apt-get update && \
+    apt-get install -y wget && \
+    wget -q https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz \
+        -O /build/models/lid.176.ftz && \
+    rm -rf /var/lib/apt/lists/*
+
+# Stage 2: Runtime
 FROM python:3.10-slim
 
 # Install runtime dependencies
@@ -23,22 +27,33 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     tesseract-ocr-eng \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy from builder
-COPY --from=builder /app/models /app/models
+# Copy Python packages from builder
+COPY --from=builder /install /usr/local
+COPY --from=builder /build/models /app/models
 
 # Set working directory
 WORKDIR /app
 
-# Copy application files
-COPY . .
+# Create necessary directories
+RUN mkdir -p input output/cleaned_texts output/metadata dataset web_uploads
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy application code
+COPY src/ /app/src/
+COPY setup.py .
 
-# Create directories
-RUN mkdir -p input output/cleaned_texts output/metadata dataset
+# Install the package
+RUN pip install -e .
 
-# Default command
-CMD ["python", "main.py"]
+# Set Python path and default port
+ENV PYTHONPATH=/app
+ENV PORT=5000
+
+# Default command (can be overridden)
+CMD ["python", "src/webapp.py"]
+
+# Health check for web server
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/ || exit 1

@@ -73,59 +73,80 @@ def save_cleaned_text(output_file, english_paragraphs, output_format="txt"):
 
 def process_single_file(file: Path, text_cleaner: TextCleaner, output_format="txt") -> bool:
     """Process individual book file through the pipeline"""
-    logger.info(f"Processing: {file.name}")
-    
-    # Initialize processing variables
-    raw_text = ""
-    ocr_used = False
-    file_meta = {}
-    source_format = detect_file_type(file)
-    
     try:
-        # File type routing
-        if source_format == "pdf":
-            raw_text, ocr_used, file_meta = process_pdf(file)
-        elif source_format == "epub":
-            raw_text = process_epub(file)
-        elif source_format == "txt":
-            raw_text = process_txt(file)
-        elif source_format == "docx":
-            raw_text = process_docx(file)
-        elif source_format == "html":
-            raw_text = process_html(file)
-        else:
-            logger.warning(f"Unsupported format: {file.name}")
+        logger.info(f"Processing: {file.name}")
+        
+        if not file.exists():
+            logger.error(f"File not found: {file}")
             return False
+            
+        # Initialize processing variables
+        raw_text = ""
+        ocr_used = False
+        file_meta = {}
+        source_format = detect_file_type(file)
+        
+        logger.info(f"Detected format: {source_format}")
+        
+        # File type routing
+        try:
+            if source_format == "pdf":
+                raw_text, ocr_used, file_meta = process_pdf(file)
+            elif source_format == "epub":
+                raw_text = process_epub(file)
+            elif source_format == "txt":
+                raw_text = process_txt(file)
+            elif source_format == "docx":
+                raw_text = process_docx(file)
+            elif source_format == "html":
+                raw_text = process_html(file)
+            else:
+                logger.warning(f"Unsupported format: {file.name}")
+                return False
+        except Exception as e:
+            logger.error(f"Processing failed for {file.name}: {str(e)}")
+            return False
+            
+        if not raw_text:
+            logger.warning(f"No text extracted from {file.name}")
+            return False
+            
+        # Text processing pipeline
+        try:
+            cleaned_paragraphs = text_cleaner.clean_text(raw_text)
+            english_paragraphs = text_cleaner.filter_english(cleaned_paragraphs)
+            english_ratio = f"{len(english_paragraphs)}/{len(cleaned_paragraphs)}"
+            
+            logger.info(f"Processed {len(cleaned_paragraphs)} paragraphs, {english_ratio} in English")
+            
+            if not english_paragraphs:
+                logger.warning(f"No valid paragraphs found in {file.name}")
+                return False
+                
+            # Save cleaned text
+            output_file = OUTPUT_DIR / "cleaned_texts" / f"{file.stem}_cleaned.{output_format}"
+            save_cleaned_text(output_file, english_paragraphs, output_format)
+            logger.info(f"Cleaned text saved: {output_file.name}")
+            
+            # Generate and save metadata
+            metadata = {
+                "source_file": file.name,
+                "source_format": source_format,
+                "paragraph_count": len(english_paragraphs),
+                "character_count": sum(len(p) for p in english_paragraphs),
+                "english_ratio": english_ratio,
+                "ocr_used": ocr_used,
+                **file_meta
+            }
+            return save_metadata(file, metadata)
+            
+        except Exception as e:
+            logger.error(f"Text processing failed for {file.name}: {str(e)}")
+            return False
+            
     except Exception as e:
-        logger.error(f"Processing failed for {file.name}: {str(e)}")
+        logger.error(f"Unexpected error processing {file.name}: {str(e)}")
         return False
-    
-    # Text processing pipeline
-    cleaned_paragraphs = text_cleaner.clean_text(raw_text)
-    english_paragraphs = text_cleaner.filter_english(cleaned_paragraphs)
-    english_ratio = f"{len(english_paragraphs)}/{len(cleaned_paragraphs)}"
-    
-    # Save cleaned text
-    output_file = OUTPUT_DIR / "cleaned_texts" / f"{file.stem}_cleaned.{output_format}"
-    try:
-        save_cleaned_text(output_file, english_paragraphs, output_format)
-        logger.info(f"Cleaned text saved: {output_file.name}")
-    except Exception as e:
-        logger.error(f"Text save failed: {str(e)}")
-        return False
-    
-    # Generate and save metadata
-    metadata = {
-        "source_file": file.name,
-        "source_format": source_format,
-        "paragraph_count": len(english_paragraphs),
-        "character_count": sum(len(p) for p in english_paragraphs),
-        "english_ratio": english_ratio,
-        "ocr_used": ocr_used,
-        **file_meta
-    }
-    
-    return save_metadata(file, metadata)
 
 def process_batch_files(text_cleaner: TextCleaner, output_format="txt") -> bool:
     """Process all files in input directory with parallel execution"""

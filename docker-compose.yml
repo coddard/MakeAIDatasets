@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./dataset:/app/dataset
+      - ./web_uploads:/app/web_uploads
+    environment:
+      - FLASK_APP=src/webapp.py
+      - FLASK_ENV=development
+      - PYTHONPATH=/app
+    command: ["flask", "run", "--host=0.0.0.0"]
+
+  cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./dataset:/app/dataset
+    environment:
+      - PYTHONPATH=/app
+    command: ["python", "src/cli.py", "--process"]

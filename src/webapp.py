@@ -2,8 +2,14 @@ from flask import Flask, request, render_template_string, send_file, abort
 from pathlib import Path
 from src.main import process_single_file, TextCleaner, download_language_model
 import os
+import logging
+import re
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 UPLOAD_FOLDER = "web_uploads"
 Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
@@ -11,18 +17,52 @@ Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        file = request.files["file"]
-        if file:
+        if 'file' not in request.files:
+            logger.error("No file provided in the request.")
+            return "No file provided", 400
+
+        file = request.files.get("file")
+        if not file or not file.filename:
+            logger.error("No file selected for upload.")
+            return "No file selected", 400
+
+        try:
             file_path = Path(UPLOAD_FOLDER) / file.filename
             file.save(file_path)
-            lang_model = download_language_model()
-            cleaner = TextCleaner(lang_model=lang_model) if lang_model else TextCleaner()
-            process_single_file(file_path, cleaner)
-            cleaned_path = Path("output/cleaned_texts") / f"{file_path.stem}_cleaned.txt"
-            if cleaned_path.exists():
-                return send_file(cleaned_path, as_attachment=True)
-            return "Processing failed.", 500
-    return render_template_string('''
+
+            if not file_path.exists():
+                logger.error("File upload failed.")
+                return "File upload failed", 500
+
+            try:
+                lang_model = download_language_model()
+                cleaner = TextCleaner(lang_model=lang_model) if lang_model else TextCleaner()
+            except Exception as e:
+                logger.exception("Failed to initialize text cleaner.")
+                return "Text cleaner initialization failed", 500
+
+            if process_single_file(file_path, cleaner):
+                cleaned_path = Path("output/cleaned_texts") / f"{file_path.stem}_cleaned.txt"
+                if cleaned_path.exists():
+                    logger.info(f"File processed successfully: {cleaned_path}")
+                    return send_file(cleaned_path, as_attachment=True)
+
+            logger.error("File processing failed.")
+            return "Processing failed", 500
+
+        except Exception as e:
+            logger.exception("Error occurred during file processing.")
+            return str(e), 500
+
+        finally:
+            try:
+                if file_path.exists():
+                    file_path.unlink()
+                    logger.info(f"Temporary file cleaned up: {file_path}")
+            except Exception as e:
+                logger.warning(f"Failed to clean up temporary file: {file_path}. Error: {str(e)}")
+
+    return render_template_string(r'''
         <html>
         <head>
             <title>MakeAIDatasets Web</title>
@@ -168,7 +208,8 @@ def index():
         function previewFiles() {
             previewContainer.innerHTML = '';
             Array.from(fileInput.files).forEach(file => {
-                if (file.type.startsWith('text') || file.name.match(/\.(txt|md|csv|html)$/i)) {
+                if (file.type.startsWith('text') || file.name.match(r"\.txt|\.md|\.csv|\.html", re.IGNORECASE)) {
+                    // Corrected regex to avoid invalid escape sequence
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const text = e.target.result;
@@ -230,9 +271,75 @@ def index():
         </html>
     ''')
 
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    # Render a small stats dashboard
+    return render_template_string('''
+        <html>
+        <head>
+            <title>Dashboard</title>
+            <style>
+                body { font-family: 'IBM Plex Mono', monospace; background: #1F1F1F; color: #FFF200; }
+                .dashboard { display: flex; flex-wrap: wrap; gap: 1em; }
+                .card { background: rgba(31,31,31,0.85); border-radius: 8px; padding: 1em; flex: 1; min-width: 200px; }
+            </style>
+        </head>
+        <body>
+            <h1>Dashboard</h1>
+            <div class="dashboard">
+                <div class="card">Words Processed Today: 12345</div>
+                <div class="card">Dataset Size: 678 MB</div>
+                <div class="card">Top Topics: AI, ML, NLP</div>
+            </div>
+        </body>
+        </html>
+    ''')
+
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    # Render settings modal
+    if request.method == "POST":
+        # Handle settings update
+        return "Settings updated successfully!", 200
+    return render_template_string('''
+        <html>
+        <head>
+            <title>Settings</title>
+            <style>
+                body { font-family: 'IBM Plex Mono', monospace; background: #1F1F1F; color: #FFF200; }
+                .modal { background: rgba(31,31,31,0.85); border-radius: 8px; padding: 2em; max-width: 400px; margin: 2em auto; }
+            </style>
+        </head>
+        <body>
+            <div class="modal">
+                <h1>Settings</h1>
+                <form method="post">
+                    <label>Clean Mode:</label>
+                    <select name="clean_mode">
+                        <option value="basic">Basic</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                    <br><br>
+                    <label>Splitting:</label>
+                    <input type="checkbox" name="splitting" checked>
+                    <br><br>
+                    <label>Filters:</label>
+                    <input type="text" name="filters" placeholder="Comma-separated filters">
+                    <br><br>
+                    <button type="submit">Save</button>
+                </form>
+            </div>
+        </body>
+        </html>
+    ''')
+
 @app.errorhandler(500)
 def handle_500(e):
+    logger.error("Internal server error occurred.")
     return "Processing failed.", 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    except Exception as e:
+        logger.exception("Fatal error occurred while running the web application.")

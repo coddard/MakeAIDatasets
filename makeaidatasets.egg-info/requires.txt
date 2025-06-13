@@ -1,0 +1,9 @@
+flask
+python-docx
+beautifulsoup4
+ebooklib
+PyPDF2
+pdf2image
+pytesseract
+datasets
+lingua-language-detector
