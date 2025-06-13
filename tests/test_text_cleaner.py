@@ -1,5 +1,5 @@
 import pytest
-from src.processors.text_cleaner.py import TextCleaner
+from src.processors.text_cleaner import TextCleaner
 
 class DummyLangModel:
     def predict(self, text, k=1):
@@ -13,12 +13,12 @@ def test_clean_text():
     assert cleaned == ["Hello world!", "This is a test."]
 
 def test_is_english():
-    cleaner = TextCleaner(lang_model=DummyLangModel())
+    cleaner = TextCleaner()
     assert cleaner.is_english("This is an English sentence.")
     assert not cleaner.is_english("")
 
 def test_filter_english():
-    cleaner = TextCleaner(lang_model=DummyLangModel())
+    cleaner = TextCleaner()
     lines = ["This is English.", ""]
     filtered = cleaner.filter_english(lines)
     assert filtered == ["This is English."]

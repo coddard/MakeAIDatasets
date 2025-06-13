@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, send_file
+from flask import Flask, request, render_template_string, send_file, abort
 from pathlib import Path
 from src.main import process_single_file, TextCleaner, download_language_model
 import os
@@ -16,7 +16,7 @@ def index():
             file_path = Path(UPLOAD_FOLDER) / file.filename
             file.save(file_path)
             lang_model = download_language_model()
-            cleaner = TextCleaner(lang_model=lang_model)
+            cleaner = TextCleaner(lang_model=lang_model) if lang_model else TextCleaner()
             process_single_file(file_path, cleaner)
             cleaned_path = Path("output/cleaned_texts") / f"{file_path.stem}_cleaned.txt"
             if cleaned_path.exists():
@@ -29,6 +29,10 @@ def index():
             <input type="submit" value="Upload and Clean">
         </form>
     ''')
+
+@app.errorhandler(500)
+def handle_500(e):
+    return "Processing failed.", 500
 
 if __name__ == "__main__":
     app.run(debug=True)

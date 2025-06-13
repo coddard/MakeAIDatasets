@@ -8,13 +8,12 @@ from typing import Optional, Dict, List
 import concurrent.futures
 
 from datasets import Dataset
-from fasttext import FastText
 
-from processors.pdf_processor import process_pdf
-from processors.epub_processor import process_epub
-from processors.text_cleaner import TextCleaner
-from utils.filetype_detector import detect_file_type
-from utils.summary_report import generate_summary_report
+from src.processors.pdf_processor import process_pdf
+from src.processors.epub_processor import process_epub
+from src.processors.text_cleaner import TextCleaner
+from src.utils.filetype_detector import detect_file_type
+from src.utils.summary_report import generate_summary_report
 
 # Configuration constants
 INPUT_DIR = Path("input")
@@ -22,8 +21,6 @@ OUTPUT_DIR = Path("output")
 DATASET_DIR = Path("dataset")
 META_DIR = OUTPUT_DIR / "metadata"
 MODEL_DIR = Path("models")
-LANG_MODEL_URL = "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz"
-LANG_MODEL_PATH = MODEL_DIR / "lid.176.ftz"
 
 # Ensure directories exist
 INPUT_DIR.mkdir(exist_ok=True)
@@ -39,30 +36,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
-def download_language_model() -> Optional[FastText._FastText]:
-    """Download and load FastText language detection model"""
-    if not LANG_MODEL_PATH.exists():
-        logger.info("Downloading language detection model...")
-        try:
-            import requests
-            response = requests.get(LANG_MODEL_URL, stream=True, timeout=60)
-            response.raise_for_status()
-            
-            with open(LANG_MODEL_PATH, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            
-            logger.info(f"Model downloaded to {LANG_MODEL_PATH}")
-        except Exception as e:
-            logger.error(f"Model download failed: {str(e)}")
-            return None
-    
-    try:
-        return FastText.load_model(str(LANG_MODEL_PATH))
-    except Exception as e:
-        logger.error(f"Model loading failed: {str(e)}")
-        return None
 
 def save_metadata(file: Path, metadata: Dict) -> bool:
     """Save processing metadata to JSON file"""
@@ -223,6 +196,11 @@ def upload_to_hf_hub(dataset: Dataset) -> bool:
         logger.error(f"Upload failed: {str(e)}")
     return False
 
+def download_language_model():
+    """Dummy implementation for compatibility. Lingua does not require model download."""
+    logger.info("Lingua does not require a language model download. Returning None.")
+    return None
+
 def main(args=None):
     """Main execution pipeline for MakeAIDatasets"""
     logger.info("Starting MakeAIDatasets processing pipeline")
@@ -234,10 +212,7 @@ def main(args=None):
         parser.add_argument("--output-format", type=str, choices=["txt", "json", "csv"], default="txt")
         args = parser.parse_args()
     # Initialize components
-    lang_model = download_language_model()
-    if not lang_model:
-        logger.warning("Proceeding without language model - no filtering will be applied")
-    text_cleaner = TextCleaner(lang_model=lang_model)
+    text_cleaner = TextCleaner()
     # Processing stage
     output_format = getattr(args, "output_format", "txt")
     if hasattr(args, "process") and args.process:
